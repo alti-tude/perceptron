@@ -38,7 +38,7 @@ def initialise(dims, x, y, feat_norm):
     b = [[0]]
     w = [np.zeros( (1,1) )]
     delta = [[0]]
-    np.random.seed(3)
+    np.random.seed(2)
     for i in range(1,l):
         wt = np.random.randn(dims[i-1], dims[i])
         bt = np.zeros( (dims[i],1) )
@@ -158,7 +158,7 @@ if __name__ == '__main__':
     data = tf.keras.datasets.mnist
     (x_train, y_train),(x_test, y_test) = data.load_data()
     
-    dims = [28*28, 50, 20, 10]
+    dims = [28*28, 397, 10]
     w, b, delta, x_flat, y_expanded, l, m, k = initialise(dims, x_train, y_train, 255)
 
     # plot_image(x_test[101])
