@@ -17,6 +17,11 @@ def sigmoid(x):
     return a, a*(1-a)
 
 
+def layer_function(func, z):
+    if func == "SIGMOID":
+        return sigmoid(z)
+
+
 def initialise(dims, x, y, feat_norm):
     """
         dims contains the dimensions of the layers where the first layer is the input layer(direct inputs) 
@@ -64,7 +69,7 @@ def initialise(dims, x, y, feat_norm):
     return w, b, delta, x_flat, y_expanded ,l , m, k
 
 
-def forward_propagation(l, x, w, b):
+def forward_propagation(l, x, w, b, layer_funcs):
     """
         l -> number of layers(including input)
         x -> test case (img_x * img_y * 1, m)
@@ -73,10 +78,10 @@ def forward_propagation(l, x, w, b):
         return a (l, dim[l] x m)
     """
     a = [x]
-    g_prime = [x*(1-x)]
+    g_prime = [x*(1-x)] #input layer is not used anyway so doesn't matter if you make it sigmoid independent
     for i in range(1, l):
         z = w[i].T @ a[i-1] + b[i]
-        sigma = sigmoid(z)
+        sigma = layer_function(layer_funcs[i], z)
         a.append(sigma[0])
         g_prime.append(sigma[1])
     
@@ -101,7 +106,7 @@ def loss(yhat, y, k, m):
 
 def back_propagation(l, a, g_prime, y, w, b):
     
-    delta = a[-1] - y
+    delta = a[-1] - y  #how to make this sigmoid independent????????????
     dw = [ np.zeros( (i.shape) ) for i in w ]
     
     for i in range(l-2, -1, -1):
@@ -112,12 +117,12 @@ def back_propagation(l, a, g_prime, y, w, b):
     return dw, db
 
 
-def grad_decent(iter, alpha, m, l, k, w, b, x_flat, y_expanded):
+def grad_decent(iter, alpha, m, l, k, w, b, x_flat, y_expanded, layer_funcs):
     x = x_flat
     for i in range(iter):
         done = int(i/iter*100)
 
-        a, g_prime = forward_propagation(l, x, w, b)
+        a, g_prime = forward_propagation(l, x, w, b, layer_funcs)
         x = a[0]
         yhat = a[-1]
         dw, db = back_propagation(l, a, g_prime, y_expanded, w, b)
@@ -134,8 +139,8 @@ def grad_decent(iter, alpha, m, l, k, w, b, x_flat, y_expanded):
     return w, b
 
 
-def accuracy(k, l, x_flat, y, w, b):
-    yhat = forward_propagation(l, x_flat, w, b)[0][-1]
+def accuracy(k, l, x_flat, y, w, b, layer_funcs):
+    yhat = forward_propagation(l, x_flat, w, b, layer_funcs)[0][-1]
     count = 0
 
     for i in range(m):
@@ -159,12 +164,13 @@ if __name__ == '__main__':
     (x_train, y_train),(x_test, y_test) = data.load_data()
     
     dims = [28*28, 397, 10]
+    layer_funcs = ["SIGMOID", "SIGMOID", "SIGMOID"]
     w, b, delta, x_flat, y_expanded, l, m, k = initialise(dims, x_train, y_train, 255)
 
     # plot_image(x_test[101])
 
-    w, b = grad_decent(500, 1, m, l, k, w, b, x_flat, y_expanded)
-    acc = accuracy(k,l,x_flat, y_train, w, b)
+    w, b = grad_decent(500, 1, m, l, k, w, b, x_flat, y_expanded, layer_funcs)
+    acc = accuracy(k,l,x_flat, y_train, w, b, layer_funcs)
     
     _, _, delta, x_flat, y_expanded, l, m, k = initialise(dims, x_test, y_test, 255)
-    acc = accuracy(k,l,x_flat, y_test, w, b)
+    acc = accuracy(k,l,x_flat, y_test, w, b, layer_funcs)
