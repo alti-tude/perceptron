@@ -1,0 +1,1 @@
+{"duration": 0.004067182540893555, "input_args": {"A_prev": "array([[[[54],\n         [15]],\n\n        [[96],\n         [88]]]])", "hparams": "{'stride': 2, 'f': 2}"}}
