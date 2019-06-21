@@ -4,6 +4,22 @@ import numpy as np
 import os, pickle
 e = np.e
 
+class loss_plotter():
+    def __init__(self):
+        plt.ion()
+        self.figure = plt.figure()
+        self.losses = np.array([])
+    
+    def add_loss(self, loss):
+        self.losses = np.append(self.losses, [loss])
+        print(self.losses)
+    
+    def show(self):
+        x = np.arange(max(0,self.losses.shape[0]-10) ,self.losses.shape[0], 1)
+        y = self.losses[max(0,self.losses.shape[0]-10):]
+        plt.clf()
+        plt.plot(x,y)
+        self.figure.canvas.draw()
 
 def plot_image(x):
     plotdata = x / 255
@@ -93,20 +109,34 @@ def loss(yhat, y, k, m):
         iterate over all the outputs and take effective dot product (@ takes hadamad product)
         -(y[i] @ np.log(yhat[i]) + (1-y[i]) @ np.log(1-yhat[i])) -> cost
         
+        y[i,np.newaxis] returns the correct shape
+
         yhat -> k x m
         y -> k x m
 
         return int
     """
     loss = 0
+    
     for i in range(k):
-        loss += -(y[i] @ np.log(yhat[i]) + (1-y[i]) @ np.log(1-yhat[i]))
+        loss += -(y[i, np.newaxis] @ np.log(yhat[i,np.newaxis].T) + (1-y[i,np.newaxis]) @ np.log(1-yhat[i,np.newaxis].T))
     return loss/m
+
+def mse_loss(yhat, y, k, m):
+    """
+        yhat -> k x m (predicted)
+        y -> k x m
+
+        return int
+    """
+    loss = 1/(2*m)*np.sum(np.power(yhat - y,2))
+    return loss
 
 
 def back_propagation(l, a, g_prime, y, w, b):
-    
-    delta = a[-1] - y  #how to make this sigmoid independent????????????
+    m = y.shape[1]
+    # delta = 1/m*(a[-1] - y) * a[-1] * (1-a[-1])
+    delta = (a[-1]-y)
     dw = [ np.zeros( (i.shape) ) for i in w ]
     
     for i in range(l-2, -1, -1):
@@ -119,6 +149,7 @@ def back_propagation(l, a, g_prime, y, w, b):
 
 def grad_decent(iter, alpha, m, l, k, w, b, x_flat, y_expanded, layer_funcs):
     x = x_flat
+    loss_plt = loss_plotter()
     for i in range(iter):
         done = int(i/iter*100)
 
@@ -128,8 +159,11 @@ def grad_decent(iter, alpha, m, l, k, w, b, x_flat, y_expanded, layer_funcs):
         dw, db = back_propagation(l, a, g_prime, y_expanded, w, b)
         
         os.system("clear")
-        print(loss(yhat, y_expanded, k, m), end="   ")
+        L = loss(yhat, y_expanded, k, m)
+        print(L, end="   ")
         print("#"*done + "-"*(100-done) + str(i), end="\r")
+        loss_plt.add_loss(L)
+        loss_plt.show()
 
         for j in range(1,l):
             w[j] = w[j] - (alpha/m) * dw[j]
@@ -160,11 +194,18 @@ def accuracy(k, l, x_flat, y, w, b, layer_funcs):
 
 
 if __name__ == '__main__':
-    data = tf.keras.datasets.mnist
-    (x_train, y_train),(x_test, y_test) = data.load_data()
-    
-    dims = [28*28, 397, 10]
-    layer_funcs = ["SIGMOID", "SIGMOID", "SIGMOID"]
+    if not os.path.exists('./mnist_dataset.pickle'):
+        data = tf.keras.datasets.mnist
+        (x_train, y_train),(x_test, y_test) = data.load_data()
+        with open('./mnist_dataset.pickle', 'wb') as fil:
+            pickle.dump(((x_train, y_train),(x_test, y_test)),fil, fix_imports=False)
+
+    with open('./mnist_dataset.pickle', 'rb') as fil:
+        ((x_train, y_train),(x_test, y_test)) = pickle.load(fil)
+
+    dims = [28*28, 397, 100, 10]
+    layer_funcs = ["SIGMOID", "SIGMOID", "SIGMOID", "SIGMOID"]
+
     w, b, delta, x_flat, y_expanded, l, m, k = initialise(dims, x_train, y_train, 255)
 
     # plot_image(x_test[101])
